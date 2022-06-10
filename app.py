@@ -1,16 +1,18 @@
 import os
 import sys
-from flask import Flask, Response, request
+
+from flask import Flask
+from flask import Response, request, jsonify
+
 import sqlalchemy.orm
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String
+
 import json
-from utils import check
 
 
 app = Flask(__name__)
 db = declarative_base()
-
 
 class User(db):
     __tablename__ = "user"
@@ -20,6 +22,7 @@ class User(db):
 
     def to_json(self):
         return {"id": self.id, "name": self.name, "email": self.email}
+
 
 
 if not "DATABASE_URL" in os.environ:
@@ -51,11 +54,16 @@ def select_users():
 @app.route("/user/<id>", methods=["GET"])  # SELECT POR ID
 def select_user(id):
     db_session = session()
-    dic_output_msg = {"user": None,
-                      "200": "Fim listagem"}
-    user_select = db_session.query(User).filter_by(id=id).one()
-    dic_output_msg["user"] = user_select.to_json()
-    return Response(json.dumps(dic_output_msg))
+    try:
+        dic_output_msg = {"user": None,
+                          "200": "Fim listagem"}
+        user_select = db_session.query(User).filter_by(id=id).one()
+        dic_output_msg["user"] = user_select.to_json()
+        return Response(json.dumps(dic_output_msg))
+    except Exception as e:
+        return jsonify(e)
+    finally:
+        db_session.close()
 
 
 # CREATE
@@ -64,19 +72,17 @@ def create_user():
     db_session = session()
     dic_output_msg = {"user": None,
                       "201": "Cadastro criado com sucesso!"}
+    data = request.get_json()
     try:
-        data = request.get_json()
         user = User(name=data["name"], email=data["email"])
-        print('ok')
         db_session.add(user)
         db_session.commit()
         dic_output_msg["user"] = user.to_json()
         return Response(json.dumps(dic_output_msg))
-    except:
-        return Response(json.dumps("400 Erro ao criar cadastro"))
+    except Exception as e:
+        return jsonify(e)
     finally:
         db_session.close()
-
 
 
 # UPDATE
@@ -92,12 +98,14 @@ def update_user(id):
             user_update.name = data['name']
         if 'email' in data:
             user_update.email = data['email']
-        db.session.add(user_update)
-        db.session.commit()
+        db_session.add(user_update)
+        db_session.commit()
         dic_output_msg["user"] = user_update.to_json()
         return Response(json.dumps(dic_output_msg))
-    except:
-        return Response(json.dumps("400 Erro ao atualizar cadastro"))
+    except Exception as e:
+        return jsonify(e)
+    finally:
+        db_session.close()
 
 
 # DELETE
@@ -107,13 +115,15 @@ def delete_user(id):
     dic_output_msg = {"user": None,
             "200": "Cadastro deletado com sucesso"}
     try:
-        user_delete = User.query.filter_by(id=id).first()
+        user_delete = User.query.filter_by(id=id).one()
         dic_output_msg["user"] = user_delete.to_json()
         db_session.delete(user_delete)
         db_session.commit()
         return Response(json.dumps(dic_output_msg))
-    except:
-        return Response(json.dumps("400 Erro ao deletar cadastro"))
+    except Exception as e:
+        return jsonify(e)
+    finally:
+        db_session.close()
 
 
 if __name__ == "__main__":
