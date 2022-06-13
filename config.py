@@ -1,31 +1,32 @@
 import smtplib
-from app import session, User
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 
-def buscar_lista():
-    db_session = session()
-    try:
-        users_select = db_session.query(User).all()
-        emails = [user.only_email() for user in users_select]
+class EmailSender:
 
-        for i in range(len(emails)):
-            sender = "No Reply <no-replay@t11.com>"
-            receiver = emails[i]
+    s = smtplib.SMTP()
 
-            message = f"""\
-            Subject: BORA BANDO DE PUTO
-            To: {receiver}
-            From: {sender}
+    s.connect("smtp.mailtrap.io", 2525)
 
-            BORA JUREMA DOIDA."""
+    s.login("114c4e1e99db01", "70f1ab0aeca10d")
 
-            with smtplib.SMTP("smtp.mailtrap.io", 2525) as server:
-                server.login("27cff4e234ace5", "2ca0b0863196af")
-                server.sendmail(sender, receiver, message)
+    def send(self, name, email, me):
+        print('aqui')
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = "Recebe o codigo de pedreiro"
+        msg['From'] = "No-reply <no-reply@t11.com>"
+        msg['To'] = f'{name} <{email}>'
 
-    except:
-        return "deu merda again"
+        text = "Envio de email elaborado pelo T11 do treinamento Next para o desafio prático"
+
+        part1 = MIMEText(text, 'plain')
+
+        msg.attach(part1)
+
+        self.s.sendmail(me, email, msg.as_string())
+        print("Sent email to " + email, end="")
 
 
-buscar_lista()
+
 

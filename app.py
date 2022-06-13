@@ -8,12 +8,15 @@ import sqlalchemy.orm
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
 from utils import check
+from config import EmailSender
+
+from time import sleep
 
 import json
 
-
 app = Flask(__name__)
 db = declarative_base()
+sende = EmailSender()
 
 
 class User(db):
@@ -25,8 +28,8 @@ class User(db):
     def to_json(self):
         return {"id": self.id, "name": self.name, "email": self.email}
 
-    def only_email(self):
-        return self.email
+    def no_id(self):
+        return {"name": self.name, "email": self.email}
 
 
 if not "DATABASE_URL" in os.environ:
@@ -147,9 +150,21 @@ def delete_user(id):
     finally:
         db_session.close()
 
-@app.route("/sendmail", methods=["Post"])
+@app.route("/sendmail", methods=['POST'])
 def sendMail():
-    pass
+    db_session = session()
+    try:
+        users_select = db_session.query(User).all()
+        emails = [user.no_id() for user in users_select]
+        print(emails)
+
+        for user in emails:
+            me = "No-reply <no-reply@t11.com>"
+            sende.send(user['name'], user['email'], me)
+
+        return (jsonify("Enviado com sucesso"), 200)
+    except:
+        return ("Error", 400)
 
 
 if __name__ == "__main__":
