@@ -2,7 +2,7 @@ import os
 import sys
 
 from flask import Flask
-from flask import Response, request, jsonify
+from flask import request, jsonify
 
 import sqlalchemy.orm
 from sqlalchemy.ext.declarative import declarative_base
@@ -24,6 +24,9 @@ class User(db):
 
     def to_json(self):
         return {"id": self.id, "name": self.name, "email": self.email}
+
+    def only_email(self):
+        return self.email
 
 
 if not "DATABASE_URL" in os.environ:
@@ -47,10 +50,11 @@ def select_users():
     db_session = session()
     try:
         dic_output_msg = {"user": None,
-                          "200": "Fim listagem"}
+                          "message": "Fim listagem"}
         users_select = db_session.query(User).all()
         dic_output_msg["user"] = [user.to_json() for user in users_select]
-        return Response(json.dumps(dic_output_msg))
+
+        return (json.dumps(dic_output_msg), 200)
     except Exception as e:
         return jsonify(e)
     finally:
@@ -62,10 +66,10 @@ def select_user(id):
     db_session = session()
     try:
         dic_output_msg = {"user": None,
-                          "200": "Fim listagem"}
+                          "message": "Fim listagem"}
         user_select = db_session.query(User).filter_by(id=id).one()
         dic_output_msg["user"] = user_select.to_json()
-        return Response(json.dumps(dic_output_msg))
+        return (json.dumps(dic_output_msg), 200)
     except Exception as e:
         return jsonify(e)
     finally:
@@ -77,22 +81,23 @@ def select_user(id):
 def create_user():
     db_session = session()
     dic_output_msg = {"user": None,
-                      "201": "Cadastro criado com sucesso!"}
+                      "message": "Cadastro criado com sucesso!"}
     data = request.get_json()
     try:
         user = User(name=data["name"], email=data["email"])
         if check(data["email"]) == "Invalid":
-            return Response(json.dumps({"message_error": "Formatação do Email Invalida"}))
+            return ("Formatação do Email Invalida",400)
 
-        result = db_session.query(User).filter_by(email=data["email"]).one()
-
-        if result.email == data["email"]:
-            return Response(json.dumps({"message_error": "Email ja cadastrado"}))
+        try:
+            db_session.query(User).filter_by(email=data["email"]).one()
+            return ("Email ja cadastrado", 400)
+        except:
+            pass
 
         db_session.add(user)
         db_session.commit()
         dic_output_msg["user"] = user.to_json()
-        return Response(json.dumps(dic_output_msg))
+        return (json.dumps(dic_output_msg), 201)
     except Exception as e:
         return jsonify(e)
     finally:
@@ -104,7 +109,7 @@ def create_user():
 def update_user(id):
     db_session = session()
     dic_output_msg = {"user": None,
-                      "200": "Cadastro atualizado com sucesso!"}
+                      "message": "Cadastro atualizado com sucesso!"}
     user_update = db_session.query(User).filter_by(id=id).one()
     data = request.get_json()
     try:
@@ -112,12 +117,12 @@ def update_user(id):
             user_update.name = data['name']
         if 'email' in data:
             if check(data["email"]) != "Invalid":
-                return Response(json.dumps({"message_error": "Formato do Email Invalido"}))
+                return ("Formato do Email Invalido", 400)
             user_update.email = data['email']
         db_session.add(user_update)
         db_session.commit()
         dic_output_msg["user"] = user_update.to_json()
-        return Response(json.dumps(dic_output_msg))
+        return (json.dumps(dic_output_msg), 200)
     except Exception as e:
         return jsonify(e)
     finally:
@@ -129,18 +134,22 @@ def update_user(id):
 def delete_user(id):
     db_session = session()
     dic_output_msg = {"user": None,
-                      "200": "Cadastro deletado com sucesso"}
+                      "message": "Cadastro deletado com sucesso"}
     try:
         user_delete = db_session.query(User).filter_by(id=id).one()
         dic_output_msg["user"] = user_delete.to_json()
         db_session.delete(user_delete)
         db_session.commit()
-        return Response(json.dumps(dic_output_msg))
+        return (json.dumps(dic_output_msg), 200)
 
     except Exception as e:
         return jsonify(e)
     finally:
         db_session.close()
+
+@app.route("/sendmail", methods=["Post"])
+def sendMail():
+    pass
 
 
 if __name__ == "__main__":
