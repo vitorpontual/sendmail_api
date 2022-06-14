@@ -9,7 +9,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
 from utils import check
 from config import EmailSender
-
 from time import sleep
 
 import json
@@ -89,8 +88,7 @@ def create_user():
     try:
         user = User(name=data["name"], email=data["email"])
         if check(data["email"]) == "Invalid":
-            return ("Formatação do Email Invalida",400)
-
+           return ("Formatação do Email Invalida",400)
         try:
             db_session.query(User).filter_by(email=data["email"]).one()
             return ("Email ja cadastrado", 400)
@@ -156,15 +154,17 @@ def sendMail():
     try:
         users_select = db_session.query(User).all()
         emails = [user.no_id() for user in users_select]
-        print(emails)
 
         for user in emails:
+            sleep(0.1)
             me = "No-reply <no-reply@t11.com>"
             sende.send(user['name'], user['email'], me)
 
         return (jsonify("Enviado com sucesso"), 200)
     except:
         return ("Error", 400)
+    finally:
+        db_session.close()
 
 
 if __name__ == "__main__":
