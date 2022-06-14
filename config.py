@@ -19,7 +19,7 @@ class EmailSender:
     #s.starttls()
 
 
-    def send(self, name, email, me):
+    def send(self, name, email, me, subject=None, ):
         msg = MIMEMultipart('alternative')
         msg['Subject'] = "Recebe o codigo de pedreiro"
         #msg['From'] = "No-reply <no-reply@t11.com>"
