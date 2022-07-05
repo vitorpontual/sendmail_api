@@ -32,7 +32,6 @@ class EmailSender:
         part1 = MIMEText(text, 'plain')
 
         msg.attach(part1)
-        print(msg)
 
         print("Sent email to " + email, end=" ")
         self.s.sendmail(me, email, msg.as_string())
